@@ -1,0 +1,77 @@
+name: building file
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: login to dockerhub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_TOKEN}}
+
+      - name: build and push image
+        run: |
+          # 1. Build the image
+          docker build -t akshata14/flask-python-app:${{ github.sha }} .
+          
+          # 2. Also tag it as 'latest'
+          docker tag akshata14/flask-python-app:${{ github.sha }} akshata14/flask-python-app:latest
+          
+          # 3. Push BOTH tags to Docker Hub
+          docker push akshata14/flask-python-app:${{ github.sha }}
+          docker push akshata14/flask-python-app:latest
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+
+      - name: docker pull image from dockerhub
+        run: docker pull akshata14/flask-python-app:${{ github.sha }}
+
+      - name: run trivy security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'akshata14/flask-python-app:${{ github.sha }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH' 
+ 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+
+      - name: checkout         
+        uses: actions/checkout@v4
+
+      - name: configure AWS credential
+        uses: aws-actions/configure-aws-credentials@v2
+
+        with: 
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: fill new image id in the aws ecs task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: flask-app-container  
+          image: akshata14/flask-python-app:${{ github.sha }}
+
+      - name: deploy to aws ecs
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: flask-service
+          cluster: flask-cluster
+          wait-for-service-stability: true
+
