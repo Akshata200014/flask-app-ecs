@@ -1,108 +1,59 @@
 # Flask App — AWS ECS Deployment
 
-A minimal Flask web application built for learning containerization and deployment to **AWS ECS (Elastic Container Service)**.
+A minimal Flask web application built for learning containerization and deployment to AWS ECS (Elastic Container Service).
 
-Part of the [TrainWithShubham](https://github.com/TrainWithShubham) — DevOps Zero To Hero course.
+*Part of the **TrainWithShubham — DevOps Zero To Hero** course.*
 
-![Python](https://img.shields.io/badge/Python-3.14-blue)
-![Flask](https://img.shields.io/badge/Flask-3.1.1-green)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)
-![AWS ECS](https://img.shields.io/badge/AWS-ECS-FF9900)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Flask](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
 
-## Features
+---
 
-- Responsive landing page with modern glassmorphism UI
-- `/health` endpoint for ECS load balancer health checks
-- Two Dockerfiles — simple and multistage (distroless)
+## ✨ Features
+- **Modern UI:** Responsive landing page featuring a modern glassmorphism UI design.
+- **Health Monitoring:** Dedicated `/health` endpoint for AWS ECS health checks and monitoring.
+- **Dual Docker Architecture:** Includes two Dockerfile approaches:
+    - **Simple:** Basic single-stage build for quick testing.
+    - **Multi-stage (Distroless-style):** High-security, lightweight production build.
+- **Infrastructure as Code:** Fully automated AWS environment using Terraform.
+- **DevSecOps:** Integrated automated security scanning in the CI/CD pipeline.
 
-## Tech Stack
+---
 
+## 🛠 Tech Stack
 | Component | Technology |
-|-----------|------------|
-| Framework | Flask 3.1.1 |
-| Runtime   | Python 3.14 |
-| Container | Docker (python-slim / distroless) |
-| Deploy    | AWS ECS |
+| :--- | :--- |
+| **Framework** | Flask 3.1.1 |
+| **Runtime** | Python 3.14 (Slim) |
+| **Container** | Docker (python-slim / Multi-stage) |
+| **Security** | Aqua Security Trivy |
+| **CI/CD** | GitHub Actions |
+| **Deploy** | AWS ECS (Fargate) |
+| **IaC** | Terraform |
 
-## Project Structure
+---
 
-```
-flask-app-ecs/
-├── app.py                 # Flask app with routes
-├── run.py                 # Entry point (host 0.0.0.0, port 80)
-├── requirements.txt       # Python dependencies
-├── templates/
-│   └── index.html         # Landing page
-├── Dockerfile             # Simple single-stage build
-└── Dockerfile-multi       # Multistage build with distroless
-```
+## 🚀 DevOps Pipeline (CI/CD)
+The project implements a full automation lifecycle:
+1. **Continuous Integration:** GitHub Actions builds the image on every push to `main`.
+2. **Security Scanning:** **Trivy** inspects the image. If `CRITICAL` or `HIGH` vulnerabilities are found, the pipeline stops to protect production.
+3. **Artifact Management:** Verified images are versioned with **Git SHAs** and pushed to Docker Hub.
+4. **IaC Provisioning:** **Terraform** ensures the AWS Cluster, Service, and Networking are correctly configured.
+5. **Continuous Deployment:** Automated rolling update to **AWS ECS Fargate**, ensuring zero downtime.
 
-## Quick Start
+---
 
-### Run locally
-
-```bash
-pip install -r requirements.txt
-python run.py
-```
-
-App runs at **http://localhost:80**.
-
-### Run with Docker
-
-**Simple build:**
-
-```bash
-docker build -t flask-app .
-docker run -p 80:80 flask-app
-```
-
-**Multistage build (smaller, production-grade):**
-
-```bash
-docker build -f Dockerfile-multi -t flask-app .
-docker run -p 80:80 flask-app
-```
-
-## Dockerfiles Explained
-
-### Simple (`Dockerfile`)
-
-Single-stage build using `python:3.14-slim`. Straightforward — copies everything, installs dependencies, runs the app. Good for development and learning.
-
-### Multistage (`Dockerfile-multi`)
-
-Two-stage build:
-1. **Builder stage** — installs dependencies into a separate directory using `python:3.14-slim`
-2. **Final stage** — copies only the app and deps into a `distroless` image
-
-Benefits:
-- Smaller final image (no pip, no shell, no OS utilities)
-- Reduced attack surface — distroless images contain only the app and its runtime
-- Better layer caching — dependencies are copied before source code
-
-## Endpoints
-
-| Route     | Method | Description                     |
-|-----------|--------|---------------------------------|
-| `/`       | GET    | Landing page                    |
-| `/health` | GET    | Health check (returns `Server is up and running`) |
-
-## Deploy to AWS ECS
-
-High-level steps to deploy this app on ECS:
-
-1. **Push image to ECR**
-   ```bash
-   aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
-   docker tag flask-app:latest <account-id>.dkr.ecr.<region>.amazonaws.com/flask-app:latest
-   docker push <account-id>.dkr.ecr.<region>.amazonaws.com/flask-app:latest
-   ```
-
-2. **Create ECS Task Definition** — specify the ECR image, port 80, memory/CPU limits
-
-3. **Create ECS Service** — attach to a cluster, configure desired count, link to a load balancer
-
-4. **Configure ALB** — target group pointing to port 80, use `/health` as the health check path
-# flask-app-ecs
-# flask-app-ecs
+## 📁 Project Structure
+```text
+.
+├── .github/workflows/   # CI/CD Pipeline (Build, Scan, Deploy)
+├── terraform/           # IaC: AWS ECS Cluster & Service
+│   └── main.tf
+├── templates/           # UI: Glassmorphism Frontend
+├── app.py               # Flask Application Logic
+├── run.py               # Production Entry Point (Port 8080)
+├── Dockerfile           # Optimized Multi-stage Build
+├── docker-compose.yml   # Local Development Orchestration
+└── task-definition.json # AWS ECS Blueprint

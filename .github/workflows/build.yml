@@ -2,6 +2,8 @@ name: building file
 on:
   push:
     branches: ['main']
+    paths:
+      - '**.yml'
 
 jobs:
   build:
